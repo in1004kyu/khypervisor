@@ -9,6 +9,9 @@
 #define VGICD_IIDR_DEFAULT  (0x43B) // Cortex-A15 */
 #define VGICD_NUM_IGROUPR   (VGICD_ITLINESNUM/32)
 #define VGICD_NUM_IENABLER  (VGICD_ITLINESNUM/32)
+#define VGICD_NUM_IPENDR  (VGICD_ITLINESNUM/32)
+#define VGICD_NUM_IACTIVER  (VGICD_ITLINESNUM/32)
+#define VGICD_NUM_IPRIORITYR  ( 8 * (VGICD_ITLINESNUM/32))
 
 /*
     1. High Priority Registers to be implemented first for test with linux
@@ -34,9 +37,9 @@ struct gicd_regs{
 
     uint32_t IGROUPR[VGICD_NUM_IGROUPR];       /* 0x080 */
     uint32_t ISCENABLER[VGICD_NUM_IENABLER];    /* 0x100, ISENABLER/ICENABLER */
-    uint32_t ISPENDR[32];       /* 0x200, ISPENDR/ICPENDR */
-    uint32_t ISACTIVER[32];     /* 0x300, ISACTIVER/ICACTIVER */
-    uint32_t IPRIORITYR[128];   /* 0x400 */
+    uint32_t ISCPENDR[VGICD_NUM_IPENDR];       /* 0x200, ISPENDR/ICPENDR */
+    uint32_t ISCACTIVER[VGICD_NUM_IACTIVER];     /* 0x300, ISACTIVER/ICACTIVER */
+    uint32_t IPRIORITYR[VGICD_NUM_IPRIORITYR];   /* 0x400 */
     uint32_t ITARGETSR[128];    /* 0x800 [0]: RO, Otherwise, RW */
     uint32_t ICFGR[64];         /* 0xC00 */
 
@@ -267,40 +270,167 @@ static hvmm_status_t handler_ISCPENDR(uint32_t write, uint32_t offset, uint32_t 
     struct gicd_regs *regs = &_regs[vmid];
     uint32_t *preg_s;
     uint32_t *preg_c;  
+    if( write && *pvalue == 0) {
+        /* Writes 0 -> Has no effect. */
+        result = HVMM_STATUS_SUCCESS; 
+        return result;
+    }
 
-    preg_s = &(regs->ISPENDR[(offset >> 2 ) - GICD_ISPENDR]);
-    preg_c = &(regs->ISPENDR[(offset >> 2 ) - GICD_ICPENDR]);
-    offset >>= 2;
+    preg_s = &(regs->ISCPENDR[(offset >> 2 ) - GICD_ISPENDR]);
+    preg_c = &(regs->ISCPENDR[(offset >> 2 ) - GICD_ICPENDR]);
 
     if ( access_size == VDEV_ACCESS_WORD ) {
-        if ( (offset >> 2 ) < (GICD_ISPENDR + VGICD_NUM_IENABLER) ) {
-        /* ISPEND */
+        if ( (offset >> 2 ) < (GICD_ISPENDR + VGICD_NUM_IPENDR) ) {
+        /* ISPENDR */
             if ( write ) {
                 *preg_s |= *pvalue;     
+            //  TODO : how use that register in guest.
             } else {
                 *pvalue = *preg_s;
             }
             result = HVMM_STATUS_SUCCESS;
-        } else if ( (offset >> 2 ) >= GICD_ICPENDR && (offset >> 2 ) < (GICD_ICPENDR + VGICD_NUM_IENABLER) ) {
-            /* ICPEND */
+        } else if ( (offset >> 2 ) >= GICD_ICPENDR && (offset >> 2 ) < (GICD_ICPENDR + VGICD_NUM_IPENDR) ) {
+            /* ICPENDR */
             if ( write ){
                 *preg_c &= ~(*pvalue);
+            //  TODO : how use that register in guest.
             } else {
                 *pvalue = *preg_c;
             }
             result = HVMM_STATUS_SUCCESS;
         }
-    } 
+    } else if ( access_size == VDEV_ACCESS_HWORD ) {
+        if ( (offset >> 2) < ( GICD_ISPENDR + VGICD_NUM_IPENDR) )  {
+            uint16_t *preg_s16 = (uint16_t *)preg_s;
+            preg_s16 += (offset & 0x3) >> 1;
+            if ( write ) {
+                *preg_s16 |= (uint16_t)(*pvalue & 0xFFFF);
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_s16;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        } else if ( (offset >> 2 ) >= GICD_ICPENDR && (offset >> 2 ) < (GICD_ICPENDR + VGICD_NUM_IPENDR) ) {
+            uint16_t *preg_c16 = (uint16_t *)preg_c;
+            preg_c16 += (offset & 0x3) >> 1;
+            if( write ){
+                *preg_c16 &= ~((uint16_t)(*pvalue & 0xFFFF));
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_c16;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        }
 
-    printh( "vgicd:%s: not implemented\n", __FUNCTION__ );
-    return result;
+    } else if ( access_size == VDEV_ACCESS_BYTE ) {
+        if ( (offset >> 2) < ( GICD_ISPENDR + VGICD_NUM_IPENDR) )  {
+            uint8_t *preg_s8 = (uint8_t *)preg_s;
+            preg_s8 += (offset & 0x3);
+            if ( write ) {
+                *preg_s8 |= (uint8_t)(*pvalue & 0xFF);
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_s8;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        } else if( ( offset >> 2 ) >= GICD_ICPENDR && ( offset >> 2 ) < (GICD_ICPENDR + VGICD_NUM_IPENDR) ) {
+            uint8_t *preg_c8 = (uint8_t *)preg_c;
+            preg_c8 += ( offset & 0x3 );
+            if ( write ){
+                *preg_c8 &= ~((uint8_t)(*pvalue & 0xFF));
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_c8;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        }
+    }
+    return result; 
 }
 
 static hvmm_status_t handler_ISCACTIVER(uint32_t write, uint32_t offset, uint32_t *pvalue, vdev_access_size_t access_size)
 {
     hvmm_status_t result = HVMM_STATUS_BAD_ACCESS;
-    printh( "vgicd:%s: not implemented\n", __FUNCTION__ );
-    return result;
+    vmid_t vmid = context_current_vmid();
+    struct gicd_regs *regs = &_regs[vmid];
+    uint32_t *preg_s;
+    uint32_t *preg_c;  
+    if( write && *pvalue == 0) {
+        /* Writes 0 -> Has no effect. */
+        result = HVMM_STATUS_SUCCESS; 
+        return result;
+    }
+
+    preg_s = &(regs->ISCACTIVER[(offset >> 2 ) - GICD_ISACTIVER]);
+    preg_c = &(regs->ISCACTIVER[(offset >> 2 ) - GICD_ICACTIVER]);
+
+    if ( access_size == VDEV_ACCESS_WORD ) {
+        if ( (offset >> 2 ) < (GICD_ISACTIVER + VGICD_NUM_IACTIVER) ) {
+        /* ISPENDR */
+            if ( write ) {
+                *preg_s |= *pvalue;     
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = *preg_s;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        } else if ( (offset >> 2 ) >= GICD_ICACTIVER && (offset >> 2 ) < (GICD_ICACTIVER + VGICD_NUM_IACTIVER) ) {
+            /* ICPENDR */
+            if ( write ){
+                *preg_c &= ~(*pvalue);
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = *preg_c;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        }
+    } else if ( access_size == VDEV_ACCESS_HWORD ) {
+        if ( (offset >> 2) < ( GICD_ISACTIVER + VGICD_NUM_IACTIVER) )  {
+            uint16_t *preg_s16 = (uint16_t *)preg_s;
+            preg_s16 += (offset & 0x3) >> 1;
+            if ( write ) {
+                *preg_s16 |= (uint16_t)(*pvalue & 0xFFFF);
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_s16;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        } else if ( (offset >> 2 ) >= GICD_ICACTIVER && (offset >> 2 ) < (GICD_ICACTIVER + VGICD_NUM_IACTIVER) ) {
+            uint16_t *preg_c16 = (uint16_t *)preg_c;
+            preg_c16 += (offset & 0x3) >> 1;
+            if( write ){
+                *preg_c16 &= ~((uint16_t)(*pvalue & 0xFFFF));
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_c16;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        }
+
+    } else if ( access_size == VDEV_ACCESS_BYTE ) {
+        if ( (offset >> 2) < ( GICD_ISACTIVER + VGICD_NUM_IACTIVER) )  {
+            uint8_t *preg_s8 = (uint8_t *)preg_s;
+            preg_s8 += (offset & 0x3);
+            if ( write ) {
+                *preg_s8 |= (uint8_t)(*pvalue & 0xFF);
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_s8;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        } else if( ( offset >> 2 ) >= GICD_ICACTIVER && ( offset >> 2 ) < (GICD_ICACTIVER + VGICD_NUM_IACTIVER) ) {
+            uint8_t *preg_c8 = (uint8_t *)preg_c;
+            preg_c8 += ( offset & 0x3 );
+            if ( write ){
+                *preg_c8 &= ~((uint8_t)(*pvalue & 0xFF));
+            //  TODO : how use that register in guest.
+            } else {
+                *pvalue = (uint32_t)*preg_c8;
+            }
+            result = HVMM_STATUS_SUCCESS;
+        }
+    }
+    return result; 
 }
 
 static hvmm_status_t handler_IPRIORITYR(uint32_t write, uint32_t offset, uint32_t *pvalue, vdev_access_size_t access_size)

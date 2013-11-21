@@ -17,6 +17,8 @@
 #define GICD_ICENABLER	(0x180/4)
 #define GICD_ISPENDR    (0x200/4)
 #define GICD_ICPENDR    (0x280/4)
+#define GICD_ISACTIVER  (0x300/4)
+#define GICD_ICACTIVER  (0x380/4)
 #define GICD_IPRIORITYR	(0x400/4)
 #define GICD_ITARGETSR	(0x800/4) 
 #define GICD_ICFGR	(0xC00/4)
