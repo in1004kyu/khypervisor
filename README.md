@@ -87,19 +87,21 @@ $ cd u-boot-arndale
 $ git checkout lue_arndale_13.1
 $ make arndale5250
 </pre>
+2. patching a autoboot for u-boot-arndale
+<pre>
+$ patch -p1 < ../patch/u-boot_arndale.patch
+</pre>
 3. refusing SD card for arndale(X is number of SD card parition)
 <pre>
 $ sudo dd if=spl/smdk5250-spl.bin of=/dev/sdX bs=512 seek=17
 $ sudo dd if=u-boot.bin of=/dev/sdX bs=512 seek=49
+$ sudo dd if=hvc-man-switch.bin of=/dev/sdX bs=512 seek=1105
+$ sudo dd if=bmguest.bin of=/dev/sdX bs=512 seek=2129
 </pre>
 4. Loading khypervisor to arndale board using CODEVISOR debugger
-
-<blockquote>
 <pre>
-- You can use "load memory from file" menu in CVD tool 
-- Loading khypervisor execution file to proper memory address
+Now khypervisor can boot  automatically.
 </pre>
-</blockquote>
 
 
 ## Testing Hypervisor Prototype 2 with u-boot
