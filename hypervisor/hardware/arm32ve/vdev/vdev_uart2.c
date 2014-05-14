@@ -4,7 +4,7 @@
 #include <log/uart_print.h>
 #include <guest.h>
 
-#define VUART_BASE_ADDR 0x12C10000
+#define VUART_BASE_ADDR 0x12C20000
 #define PUART_BASE_ADDR 0x12C20000
 
 #define    readl(a)         (*(volatile unsigned int *)(a))
@@ -29,9 +29,7 @@ static hvmm_status_t vdev_uart_access_handler(uint32_t write, uint32_t offset,
  
    unsigned int op = rx_status_flag();
 
-
-
-   if (offset == 0x20 ){
+   if(offset == 0x20){
 
        if (op == 0 && vmid == 0)
            ;
@@ -42,6 +40,7 @@ static hvmm_status_t vdev_uart_access_handler(uint32_t write, uint32_t offset,
        else
            return HVMM_STATUS_SUCCESS;
    }
+
 
 //    printH("What the fuck!\n");
 
@@ -132,7 +131,7 @@ static hvmm_status_t vdev_uart_reset(void)
     return HVMM_STATUS_SUCCESS;
 }
 
-struct vdev_ops _vdev_uart_ops = {
+struct vdev_ops _vdev_uart2_ops = {
     .init = vdev_uart_reset,
     .check = vdev_uart_check,
     .read = vdev_uart_read,
@@ -140,24 +139,24 @@ struct vdev_ops _vdev_uart_ops = {
     .post = vdev_uart_post,
 };
 
-struct vdev_module _vdev_uart_module = {
-    .name = "K-Hypervisor vDevice Uart Module",
+struct vdev_module _vdev_uart2_module = {
+    .name = "K-Hypervisor vDevice Uart2 Module",
     .author = "Kookmin Univ.",
-    .ops = &_vdev_uart_ops,
+    .ops = &_vdev_uart2_ops,
 };
 
-hvmm_status_t vdev_uart_init()
+hvmm_status_t vdev_uart2_init()
 {
     hvmm_status_t result = HVMM_STATUS_BUSY;
 
-    result = vdev_register(VDEV_LEVEL_LOW, &_vdev_uart_module);
+    result = vdev_register(VDEV_LEVEL_LOW, &_vdev_uart2_module);
     if (result == HVMM_STATUS_SUCCESS)
-        printh("vdev registered:'%s'\n", _vdev_uart_module.name);
+        printh("vdev registered:'%s'\n", _vdev_uart2_module.name);
     else {
         printh("%s: Unable to register vdev:'%s' code=%x\n",
-                __func__, _vdev_uart_module.name, result);
+                __func__, _vdev_uart2_module.name, result);
     }
 
     return result;
 }
-vdev_module_low_init(vdev_uart_init);
+vdev_module_low_init(vdev_uart2_init);

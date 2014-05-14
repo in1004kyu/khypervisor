@@ -17,7 +17,24 @@
 
 #define TX_FIFO_FULL_MASK       (1 << 24)
 #define    readl(a)         (*(volatile unsigned int *)(a))
-#define    writeb(v, a)         (*(volatile unsigned char *)(a) = (v))
+#define    writeb(v, a)     (*(volatile unsigned char *)(a) = (v))
+#define    readb(a)         (*(volatile unsigned char *)(a))
+
+#define RX_FIFO_FULL_MASK    0
+
+char uart_getc_character(void)
+{
+    unsigned char ch=0;
+    struct s5p_uart *const uart = (struct s5p_uart *) UART2_BASE;
+
+    //while (!(readl(&uart->ufstat) | RX_FIFO_FULL_MASK));
+
+    if((readl(&uart->ufstat) | RX_FIFO_FULL_MASK))
+        ch = readb(&uart->urxh);
+
+    return ch;
+
+}  
 
 static int serial_err_check(int op)
 {

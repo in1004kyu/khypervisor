@@ -102,5 +102,5 @@ vmid_t guest_waiting_vmid(void);
 hvmm_status_t guest_switchto(vmid_t vmid, uint8_t locked);
 extern void __mon_switch_to_guest_context(struct arch_regs *regs);
 hvmm_status_t guest_init();
-
+unsigned int rx_status_flag(void);
 #endif
