@@ -273,7 +273,7 @@ vmid_t create_vm(uint32_t num_vcpu, uint64_t start_addr,
 
     set_virqmap(created_vmid, irqmaps, guest_virqmapds[created_vmid]);
 
-	return 1;
+	return created_vmid;
 }
 vm_state_t delete_vm(vmid_t vmid) {
 	return UNDEFINED;

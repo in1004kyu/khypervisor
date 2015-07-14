@@ -218,6 +218,10 @@ hvmm_status_t interrupt_restore(vmid_t vmid)
     return ret;
 }
 
+/*
+ * Creates a mapping table between PIRQ and VIRQ.vmid/pirq/coreid.
+ * Mapping of between pirq and virq is hard-coded.
+ */
 hvmm_status_t interrupt_init(struct guest_virqmap *virqmap)
 {
     hvmm_status_t ret = HVMM_STATUS_UNKNOWN_ERROR;
@@ -254,8 +258,18 @@ hvmm_status_t set_virqmap(vmid_t vmid, struct guest_virqmap *irqmaps, struct vir
     hvmm_status_t ret = HVMM_STATUS_UNKNOWN_ERROR;
 
     uint32_t pirq, virq;
-    uint32_t i = 0;
+    struct virqmap_entry *map;
+    int i = 0;
+    map = irqmaps[vmid].map;
 
+    /* Initialize PIRQ to VIRQ mapping */ 
+    for (i = 0; i < MAX_IRQS; i++) {
+        map[i].enabled = GUEST_IRQ_DISABLE;
+        map[i].virq = VIRQ_INVALID;
+        map[i].pirq = PIRQ_INVALID;
+    }
+
+    i = 0;
     while (irqmapd[i].enabled != END_OF_MD) {
         pirq = irqmapd[i].pirq;
         virq = irqmapd[i].virq;
