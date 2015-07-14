@@ -121,5 +121,6 @@ const int32_t interrupt_check_guest_irq(uint32_t pirq);
 const uint32_t interrupt_pirq_to_virq(vmid_t vmid, uint32_t pirq);
 const uint32_t interrupt_virq_to_pirq(vmid_t vmid, uint32_t virq);
 const uint32_t interrupt_pirq_to_enabled_virq(vmid_t vmid, uint32_t pirq);
+hvmm_status_t set_virqmap(vmid_t vmid, struct guest_virqmap *irqmaps, struct virqmap_entry *irqmapd);
 
 #endif

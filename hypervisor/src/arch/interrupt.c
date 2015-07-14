@@ -246,3 +246,24 @@ hvmm_status_t interrupt_init(struct guest_virqmap *virqmap)
 
     return ret;
 }
+
+#define END_OF_MD -1
+
+hvmm_status_t set_virqmap(vmid_t vmid, struct guest_virqmap *irqmaps, struct virqmap_entry *irqmapd)
+{
+    hvmm_status_t ret = HVMM_STATUS_UNKNOWN_ERROR;
+
+    uint32_t pirq, virq;
+    uint32_t i = 0;
+
+    while (irqmapd[i].enabled != END_OF_MD) {
+        pirq = irqmapd[i].pirq;
+        virq = irqmapd[i].virq;
+        irqmaps[vmid].map[pirq].virq = virq;
+        irqmaps[vmid].map[virq].pirq = pirq;
+        i++;
+    }
+
+    ret = HVMM_STATUS_SUCCESS;
+    return ret;
+}

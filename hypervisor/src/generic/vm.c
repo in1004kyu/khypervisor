@@ -8,8 +8,79 @@
 /* Maximum is 2 now. Need to be dynamic setting */
 #define MAX_NUM_VMID 2
 #define INIT_VMID 0
-static vm vms[2];
+#define MEMORY_DESCRIPT 2
+#define MEMORY_START 0
+//static vm vms[2];
 static vmid_t current_vmid = VMID_INVALID;
+
+#define IRQ_ENABLED 1
+#define IRQ_DISABLED 0
+#define END_OF_MD -1
+
+/*
+ *  vimm-0, pirq-69, virq-69 = pwm timer driver
+ *  vimm-0, pirq-32, virq-32 = WDT: shared driver
+ *  vimm-0, pirq-34, virq-34 = SP804: shared driver
+ *  vimm-0, pirq-35, virq-35 = SP804: shared driver
+ *  vimm-0, pirq-36, virq-36 = RTC: shared driver
+ *  vimm-0, pirq-38, virq-37 = UART: dedicated driver IRQ 37 for guest 0
+ *  vimm-1, pirq-39, virq-37 = UART: dedicated driver IRQ 37 for guest 1
+ *  vimm-2, pirq,40, virq-37 = UART: dedicated driver IRQ 37 for guest 2
+ *  vimm-3, pirq,48, virq-37 = UART: dedicated driver IRQ 38 for guest 3 -ch
+ *  vimm-0, pirq-43, virq-43 = ACCI: shared driver
+ *  vimm-0, pirq-44, virq-44 = KMI: shared driver
+ *  vimm-0, pirq-45, virq-45 = KMI: shared driver
+ *  vimm-0, pirq-47, virq-47 = SMSC 91C111, Ethernet - etc0
+ *  vimm-0, pirq-41, virq-41 = MCI - pl180
+ *  vimm-0, pirq-42, virq-42 = MCI - pl180
+ */
+
+static struct virqmap_entry guest0_virqmapd[] = {
+    { IRQ_ENABLED, 1, 1 },
+    { IRQ_ENABLED, 16, 16 },
+    { IRQ_ENABLED, 17, 17 },
+    { IRQ_ENABLED, 18, 18 },
+    { IRQ_ENABLED, 19, 19 },
+    { IRQ_ENABLED, 31, 31 },
+    { IRQ_ENABLED, 32, 32 },
+    { IRQ_ENABLED, 33, 33 },
+    { IRQ_ENABLED, 34, 34 },
+    { IRQ_ENABLED, 35, 35 },
+    { IRQ_ENABLED, 36, 36 },
+    { IRQ_ENABLED, 37, 38 },
+    { IRQ_ENABLED, 38, 37 },
+    { IRQ_ENABLED, 41, 41 },
+    { IRQ_ENABLED, 42, 42 },
+    { IRQ_ENABLED, 43, 43 },
+    { IRQ_ENABLED, 44, 44 },
+    { IRQ_ENABLED, 45, 45 },
+    { IRQ_ENABLED, 46, 46 },
+    { IRQ_ENABLED, 47, 47 },
+    { IRQ_ENABLED, 69, 69 },
+    { END_OF_MD, 0, 0}
+};
+
+static struct virqmap_entry guest1_virqmapd[] = {
+    { IRQ_ENABLED, 39, 37 },
+    { END_OF_MD, 0, 0}
+};
+
+static struct virqmap_entry guest2_virqmapd[] = {
+    { IRQ_ENABLED, 40, 37 },
+    { END_OF_MD, 0, 0}
+};
+
+static struct virqmap_entry guest3_virqmapd[] = {
+    { IRQ_ENABLED, 48, 37 },
+    { END_OF_MD, 0, 0}
+};
+
+static struct virqmap_entry *guest_virqmapds[] = {
+    guest0_virqmapd,
+    guest1_virqmapd,
+    guest2_virqmapd,
+    guest3_virqmapd
+};
 
 /**
  * \defgroup Guest_memory_map_descriptor
@@ -169,8 +240,8 @@ static struct memmap_desc **guest_mdlists[] =  {
 };
 
 void setup_mdlist(vmid_t vmid, uint64_t start_addr, uint32_t offset) {
-    guest_mdlists[vmid][2][0].pa = start_addr;
-    guest_mdlists[vmid][2][0].size = offset;
+    guest_mdlists[vmid][MEMORY_DESCRIPT][MEMORY_START].pa = start_addr;
+    guest_mdlists[vmid][MEMORY_DESCRIPT][MEMORY_START].size = offset;
 }
 
 vmid_t get_vmid() {
@@ -199,6 +270,9 @@ vmid_t create_vm(uint32_t num_vcpu, uint64_t start_addr,
     if (memory_guest_init(guest_mdlists[created_vmid], created_vmid))
         printh("[%s : %d] guest %d virtual memory init failed\n",
                 __func__, __LINE__, get_vmid());
+
+    set_virqmap(created_vmid, irqmaps, guest_virqmapds[created_vmid]);
+
 	return 1;
 }
 vm_state_t delete_vm(vmid_t vmid) {
